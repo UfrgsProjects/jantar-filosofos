@@ -1,2 +1,2 @@
 compile:
-	gcc fil_semaforos.c -o semaforo -lpthread
+	gcc -Wall fil_semaforos.c -lpthread  -o semaforo
