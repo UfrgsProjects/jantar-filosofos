@@ -20,60 +20,88 @@ filosofo_estado *estado;
 int numero_filosofos;
 sem_t *semaforos;
 sem_t mutex;
+sem_t mutex_starvation;	
 
 void imprime_estado(int id_filosofo){
 	switch(estado[id_filosofo]){
 		case 0: 
-			printf("Filosofo: %d, Fazendo: THINKING\n",id_filosofo);
+			printf("T");
 		break;
 		
 		case 1: 
-			printf("Filosofo: %d, Fazendo: HUNGRY\n",id_filosofo);
+			printf("H");
 		break;
 
 		case 2: 
-			printf("Filosofo: %d, Fazendo: EATING\n",id_filosofo);
+			printf("E");
 		break;
 	}
 }
 
+
+void show_estado(){
+	int i = 0;
+	//sem_wait(&mutex);		
+	for(i = 0; i < numero_filosofos; i++)
+		imprime_estado(i);
+	printf("\n");
+	//sem_post(&mutex);		
+}
+
 void think(int id_filosofo){
-	imprime_estado(id_filosofo);
-	sleep( (rand() % 20 + 1) );
+	show_estado(id_filosofo);
+	sleep( (rand() % 10 + 1) );
 }
 
 void eat(int id_filosofo){
-	imprime_estado(id_filosofo);
-	sleep( (rand() % 20 + 1) );
+	show_estado(id_filosofo);
+	sleep( (rand() % 10 + 1) );
 }
 
 
+void test(int id){
+	if ( estado[id] == HUNGRY && 
+         estado[LEFT(id)] != EATING &&
+	     estado[RIGHT(id)] != EATING ){
+			estado[id] = EATING;
+			sem_post(&semaforos[id]);	
+	}
+}
+
 // FILOSOFO TOMA GARFOS
 void take_forks(int id_filosofo){
-	estado[id_filosofo] = HUNGRY;	
-	while( estado[id_filosofo] == HUNGRY){		
+		
+	//while( estado[id_filosofo] == HUNGRY){		
 	sem_wait(&mutex);
-	printf("Filosofo: %d, Fazendo: HUNGRY\n",id_filosofo);	
+	estado[id_filosofo] = HUNGRY;	
+		/*		
 		if( (estado[id_filosofo] == HUNGRY) && 
 		    (estado[LEFT(id_filosofo)] != EATING) &&
 		    (estado[RIGHT(id_filosofo)] != EATING)	){		
 				estado[id_filosofo] = EATING;				
 				sem_post(&semaforos[id_filosofo]);
 		}
+		*/
+	show_estado(id_filosofo);
+	test(id_filosofo);	
     sem_post(&mutex);			
 	sem_wait(&semaforos[id_filosofo]);
-	}
+	//}
+	
 }
 
 // FILOSOFO SOLTA GARFOS
 void drop_forks(int id_filosofo){
 	sem_wait(&mutex);
-		if( estado[LEFT(id_filosofo)] == HUNGRY ) 
+		/*		
+		if( estado[LEFT(id_filosofo - 1)] == HUNGRY ) 
 			sem_post(&semaforos[LEFT(id_filosofo)]);
-		if( estado[RIGHT(id_filosofo)] == HUNGRY ) 
+		if( estado[RIGHT(id_filosofo - 1)] == HUNGRY ) 
 			sem_post(&semaforos[RIGHT(id_filosofo)]);		
-			
+		*/	
 		estado[id_filosofo] = THINKING;
+		test(LEFT(id_filosofo));
+		test(RIGHT(id_filosofo));
 	sem_post(&mutex);		
 }
 
@@ -84,9 +112,11 @@ void *filosofo_work(void* arg){
 		
 	while(TRUE){
 		think(id);
-		take_forks(id);
-		eat(id);
-		drop_forks(id);
+		//sem_wait(&mutex_starvation);
+			take_forks(id);
+			eat(id);
+			drop_forks(id);
+		sem_post(&mutex_starvation);
 	}
 
 	return (NULL);
@@ -96,6 +126,7 @@ void *filosofo_work(void* arg){
 void init_semaforo(int num){
 	int i = 0;
 	sem_init(&mutex, 0, 1); // mutex
+	sem_init(&mutex_starvation,0,1);
 	semaforos = (sem_t *) malloc( num * sizeof(sem_t) );	
 	estado = (filosofo_estado *) malloc(num * sizeof(filosofo_estado));
 	for(i = 0; i < num; i++)
