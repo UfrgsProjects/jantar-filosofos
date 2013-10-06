@@ -41,11 +41,9 @@ void imprime_estado(int id_filosofo){
 
 void show_estado(){
 	int i = 0;
-	//sem_wait(&mutex);		
 	for(i = 0; i < numero_filosofos; i++)
 		imprime_estado(i);
 	printf("\n");
-	//sem_post(&mutex);		
 }
 
 void think(int id_filosofo){
@@ -93,6 +91,7 @@ void *filosofo_work(void* arg){
 		
 	while(TRUE){
 		think(id);
+		// Seção critica como solução  para o problema de starvation, oferecida por tenenbaum. 
 		//sem_wait(&mutex_starvation);
 			take_forks(id);
 			eat(id);
