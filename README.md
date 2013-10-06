@@ -1,7 +1,5 @@
-jantar-filosofos
+Jantar-Filosofos
 ================
 
-Dining Philosophers Algorithm in two version - Semaphore and Mutex
-
-Jantar dos filosofos versão semaforo funcionando. Felipe acabar com mutex!!!!
-
+Dining Philosophers Algorithm - Semaphore and Mutex
+Desenvolvido por Rodrigo Freitas Leite e Felipe Soares Paula.
