@@ -70,35 +70,16 @@ void test(int id){
 
 // FILOSOFO TOMA GARFOS
 void take_forks(int id_filosofo){
-		
-	//while( estado[id_filosofo] == HUNGRY){		
 	sem_wait(&mutex);
-	estado[id_filosofo] = HUNGRY;	
-		/*		
-		if( (estado[id_filosofo] == HUNGRY) && 
-		    (estado[LEFT(id_filosofo)] != EATING) &&
-		    (estado[RIGHT(id_filosofo)] != EATING)	){		
-				estado[id_filosofo] = EATING;				
-				sem_post(&semaforos[id_filosofo]);
-		}
-		*/
-	show_estado(id_filosofo);
-	test(id_filosofo);	
+		estado[id_filosofo] = HUNGRY;	
+		test(id_filosofo);	
     sem_post(&mutex);			
 	sem_wait(&semaforos[id_filosofo]);
-	//}
-	
 }
 
 // FILOSOFO SOLTA GARFOS
 void drop_forks(int id_filosofo){
 	sem_wait(&mutex);
-		/*		
-		if( estado[LEFT(id_filosofo - 1)] == HUNGRY ) 
-			sem_post(&semaforos[LEFT(id_filosofo)]);
-		if( estado[RIGHT(id_filosofo - 1)] == HUNGRY ) 
-			sem_post(&semaforos[RIGHT(id_filosofo)]);		
-		*/	
 		estado[id_filosofo] = THINKING;
 		test(LEFT(id_filosofo));
 		test(RIGHT(id_filosofo));
@@ -116,7 +97,7 @@ void *filosofo_work(void* arg){
 			take_forks(id);
 			eat(id);
 			drop_forks(id);
-		sem_post(&mutex_starvation);
+		//sem_post(&mutex_starvation);
 	}
 
 	return (NULL);
