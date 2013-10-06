@@ -59,8 +59,8 @@ void eat(int id_filosofo){
 
 void test(int id){
 	if ( estado[id] == HUNGRY && 
-         estado[LEFT(id)] != EATING &&
-	     estado[RIGHT(id)] != EATING ){
+         estado[LEFT(id)] != EATING && 
+	     estado[RIGHT(id)] != EATING){
 			estado[id] = EATING;
 			sem_post(&semaforos[id]);	
 	}
