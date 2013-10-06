@@ -5,88 +5,19 @@
 #include <unistd.h>
 #define IN_USE 1
 #define FREE 0
+#define RIGHT(i) (( (i) == 0 ) ? (i)+1 : (i) == n - 1 ? 0 : (i)+1)
+#define LEFT(i) (( (i) == 0 ) ? n - 1 : (i) == n - 1 ? (i)-1 : (i)-1 )
+
 
 typedef enum philosopher_states { THINKING, HUNGRY, EATING } phil_states;
 
 int alive = 1;
 int n; //numero de filosofos
-pthread_mutex_t mutex;
+pthread_mutex_t mutex, mutex_starvation;
 pthread_cond_t *cond;
 int *forks;
 
 phil_states *philosopher; // array de filosofos
-
-void take_forks(int id){
-
-	int left = id;				// garfo da esquerda
-	int right = (1+id)%n;			// garfo da direita
-  
-	philosopher[id] = HUNGRY;
-	pthread_mutex_lock(&mutex);
-		
-		//printf("id: %d Sessao critica take \n", id);
-		//printf("H");
-		printPhil(id);
-
-		while(forks[right] == IN_USE || forks[left] == IN_USE){
-				pthread_cond_wait(&cond[id], &mutex);
-		}
-
-
-		
-		philosopher[id] = EATING;
-  		forks[left]		= IN_USE;
-  		forks[right]	= IN_USE;
-		//printf("id: %d Comendo \n", id);
-		//printPhil(id);
-  	pthread_mutex_unlock(&mutex);
-  	printPhil(id);
-//printf("id: %d take fim \n", id);
-}
-
-void drop_forks(int id){
-	
-  int left = id;		// garfo da esquerda
-  int right = (1+id)%n;	// garfo da direita
-  
-
-	pthread_mutex_lock(&mutex);
-		//printf("id: %d Sessao critica drop \n", id);
-		forks[left]		= FREE;
-		forks[right]	= FREE;
-		printPhil(id);
-		philosopher[id] = THINKING;
-		//printf("T");
-		//printf("id: %d Acordando %d e %d \n", id, left, right);
-		/*Acordando os filosofos da esquerda e direita*/
-		pthread_cond_signal(&cond[left]);
-    	pthread_cond_signal(&cond[right]);
-    	printPhil(id);
-    	//printf("id: %d Acordando %d e %d sucesso \n", id, left, right);
-	pthread_mutex_unlock(&mutex);
-//printf("id: %d drop fim \n", id);
-printPhil(id);
-}
-
-
-void *philosopherAction(void *arg){
-	
-	int id = (int) arg;
-	while(1){
-
-		sleep((rand() % 20 + 1));
-		//printPhil(id);
-		take_forks(id);
-		sleep((rand() % 20 + 1));
-		//printPhil(id);
-		drop_forks(id);
-		printPhil(id);
-		//printPhil(id);
-		//printf("um laco \n");
-		//
-	}
-	pthread_exit(0);
-}
 
 void printPhil(int id){
 	int i;
@@ -100,6 +31,72 @@ void printPhil(int id){
 	}
 	printf("\n");
 }
+
+void *take_forks(int id){
+
+	int left = id;				// garfo da esquerda
+	int right = (1+id)%n;			// garfo da direita
+  
+	pthread_mutex_lock(&mutex);
+	philosopher[id] = HUNGRY;
+	printPhil(id);
+		while(forks[right] == IN_USE || forks[left] == IN_USE){
+				pthread_cond_wait(&cond[id], &mutex);
+		}
+		
+		philosopher[id] = EATING;
+  		forks[left]		= IN_USE;
+  		forks[right]	= IN_USE;
+
+  	pthread_mutex_unlock(&mutex);
+  	printPhil(id);
+
+}
+
+void *drop_forks(int id){
+	
+  int left = id;		// garfo da esquerda
+  int right = (1+id)%n;	// garfo da direita
+  
+
+	pthread_mutex_lock(&mutex);
+		forks[left]		= FREE;
+		forks[right]	= FREE;
+		printPhil(id);
+		philosopher[id] = THINKING;
+		/*Acordando os filosofos da esquerda e direita*/
+		pthread_cond_signal(&cond[left]);
+    	pthread_cond_signal(&cond[right]);
+	pthread_mutex_unlock(&mutex);
+
+}
+
+void toThink(int id){
+	sleep((rand() % 10 + 1));
+}
+
+void toEat(int id){
+	sleep((rand() % 10 + 1));	
+}
+
+
+void *philosopherAction(void *arg){
+	
+	int id = (int) arg;
+	while(1){
+
+		toThink(id);
+		/*Se tivermos um mutex aqui, não temos starvation, mas a concorrencia fica limitada*/
+		//pthread_mutex_lock(&mutex_starvation);
+		take_forks(id);
+		toEat(id);
+		drop_forks(id);
+		//pthread_mutex_unlock(&mutex_starvation);
+
+	}
+	pthread_exit(0);
+}
+
 
 int main (int argc, const char * argv[]){
 
@@ -122,6 +119,7 @@ int main (int argc, const char * argv[]){
 	cond		= (pthread_cond_t *) malloc(n * sizeof(pthread_cond_t));
 	forks		= (int*) malloc(n * sizeof(int*));
 	pthread_mutex_init(&mutex, NULL);
+	pthread_mutex_init(&mutex_starvation, NULL);
 	
 	for(i=0;i<n;i++){
 			philosopher[i] = THINKING;
